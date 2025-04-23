@@ -1,6 +1,8 @@
 import Image, { type ImageProps } from "next/image";
 import { Button } from "@repo/ui/button";
 import styles from "./page.module.css";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { env } from "process";
 
 type Props = Omit<ImageProps, "src"> & {
   srcLight: string;
@@ -9,7 +11,6 @@ type Props = Omit<ImageProps, "src"> & {
 
 const ThemeImage = (props: Props) => {
   const { srcLight, srcDark, ...rest } = props;
-
   return (
     <>
       <Image {...rest} src={srcLight} className="imgLight" />
@@ -35,7 +36,12 @@ export default function Home() {
           <li>
             Killing myself<code>apps/web/app/page.tsx</code>
           </li>
-          <li>Save and see your changes instantly.</li>
+          <li className={"text-2xl underline"}>
+            Save and see your changes instantly.
+            <Alert>
+              <AlertTitle>Alert</AlertTitle>
+            </Alert>
+          </li>
         </ol>
 
         <div className={styles.ctas}>
