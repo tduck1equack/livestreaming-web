@@ -77,7 +77,6 @@ model UserRole {
   assignedAt DateTime @default(now())
 
   @@id([userId, roleId])
-  @@map("user_roles")
 }
 
 // 2. Streams and Videos
@@ -105,6 +104,7 @@ model Stream {
   watched         Watched[]
   playlistItems   PlaylistItem[]
   analytics       StreamAnalytics?
+  categories      StreamCategory[]
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt
   deletedAt       DateTime?
@@ -173,6 +173,7 @@ model Category {
   name        String @unique
   description String?
   videos      VideoCategory[]
+  streams     StreamCategory[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -185,7 +186,18 @@ model VideoCategory {
   addedAt    DateTime @default(now())
 
   @@id([videoId, categoryId])
-  @@map("video_categories")
+}
+
+// New model for Stream Categories
+model StreamCategory {
+  streamId    String @map("stream_id")
+  categoryId  Int    @map("category_id")
+  stream      Stream @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  addedAt     DateTime @default(now())
+
+  @@id([streamId, categoryId])
+  @@map("StreamCategories")
 }
 
 // 4. User Interactions
