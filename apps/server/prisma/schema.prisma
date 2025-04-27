@@ -36,8 +36,11 @@ model User {
   email           String    @unique
   password        String
   username        String    @unique
+  fullName        String?
   avatarUrl       String?
   bio             String?
+  birthday        DateTime  @db.Date
+  phoneNumber     String
   roles           UserRole[]
   streams         Stream[]
   videos          Video[]
