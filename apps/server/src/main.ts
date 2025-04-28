@@ -19,7 +19,7 @@ async function bootstrap() {
 
   app.setGlobalPrefix(apiPrefix);
 
-  console.log(apiPrefix);
+  console.log(`Using API endpoint: localhost:4000/${apiPrefix}`);
 
   // TODO: Un-hardcode server port
   app.listen(3000);
