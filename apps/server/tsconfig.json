@@ -21,6 +21,7 @@
       "@/*": ["src/*"],
       "@auth/*": ["src/auth/*"],
       "@prisma/*": ["src/prisma/*"],
+      "@redis/*": ["src/redis/*"],
       "@modules/*": ["src/modules/*"],
       "@config/*": ["src/config/*"],
       "@types/*": ["src/types/*"]

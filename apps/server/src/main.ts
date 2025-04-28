@@ -1,10 +1,17 @@
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { ConfigService } from "@nestjs/config";
-import { ValidationPipe } from "@nestjs/common";
+import { ConsoleLogger, Logger, ValidationPipe } from "@nestjs/common";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: new ConsoleLogger({
+      timestamp: true,
+      colors: true,
+      // Potential JSON logging for better external logger integration
+    }),
+  });
+  const logger = new Logger("Bootstrap");
 
   // Use NestJS's built-in Pipes
   app.useGlobalPipes(
@@ -16,12 +23,15 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   const apiPrefix = configService.get<string>("API_ENDPOINT") || "api/v1";
-
+  const serverPort = configService.get<number>("SERVER_PORT") ?? 3000;
   app.setGlobalPrefix(apiPrefix);
 
-  console.log(`Using API endpoint: localhost:4000/${apiPrefix}`);
+  logger.log(
+    `API up and running at port ${serverPort} and endpoint root ${apiPrefix}`,
+  );
 
-  // TODO: Un-hardcode server port
-  app.listen(3000);
+  // Fallback to default port 3000 if environment is not set
+
+  app.listen(serverPort);
 }
 bootstrap();

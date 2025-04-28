@@ -6,14 +6,16 @@ import { LoginDto } from "./dto";
 import { SignupDto } from "./dto";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
-import { JwtPayload } from "@/types";
+import { JwtPayload, TokenResponse } from "@/types";
 import { User } from "@prisma/client";
+import { RedisService } from "@/redis/redis.service";
 
 @Injectable()
 export class AuthService {
   constructor(
     private config: ConfigService,
     private prisma: PrismaService,
+    private redis: RedisService,
     private jwt: JwtService,
   ) {}
   async login(loginInfo: LoginDto) {
@@ -67,9 +69,10 @@ export class AuthService {
     });
     return this.signToken(newUser);
   }
+  async signOut() {}
 
   // TODO: Add types for schema
-  async signToken(user: User): Promise<{ access_token: string }> {
+  async signToken(user: User): Promise<TokenResponse> {
     const iat: number = Date.now() / 1000;
     const payload: JwtPayload = {
       sub: user.id,
@@ -78,10 +81,20 @@ export class AuthService {
       iat,
     };
     // Import Secret from .env instead of setting it in the module
-    const token: string = await this.jwt.signAsync(payload, {
+    const accessToken: string = await this.jwt.signAsync(payload, {
       expiresIn: "1h",
-      secret: this.config.get("JWT_SECRET"),
+      secret: this.config.get("JWT_ACCESS_SECRET"),
     });
-    return { access_token: token };
+    const refreshToken: string = await this.jwt.signAsync(payload, {
+      expiresIn: "7d",
+      secret: this.config.get("JWT_REFRESH_SECRET"),
+    });
+    await this.redis.set(`user:${user.id}`, refreshToken, 60 * 60 * 24 * 7);
+    return { accessToken: accessToken, refreshToken: refreshToken };
+  }
+  // TODO: Update refresh token
+  async updateRefreshToken() {}
+  async revokeToken(userId: string) {
+    await this.redis.del(`user:${userId}`);
   }
 }
