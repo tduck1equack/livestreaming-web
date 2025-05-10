@@ -5,9 +5,13 @@ import {
   OnModuleInit,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { error } from "console";
 import { createClient, RedisClientType } from "redis";
 
+/**
+ * Custom wrapper of Redis Client with error handling
+ * Initial implementation includes set(), get() and del() methods
+ */
+// TODO: Refactor error handling
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   public client: RedisClientType;

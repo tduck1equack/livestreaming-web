@@ -18,11 +18,19 @@ export class AuthService {
     private redis: RedisService,
     private jwt: JwtService,
   ) {}
-  async login(loginInfo: LoginDto) {
-    // Find user by email
-    // If user not found, throw error "User doesn't exist"
-    // Verify password hash
-    // If incorrect, throw error "Invalid password"
+  /**
+   * Log in and authenticate a user
+   * This method checks if user exists in the database with correct email and password
+   * If so, it generates a pair of JWT tokens (access and refresh) for the user
+   * @param loginInfo information including email and password of user
+   * @returns User's signed tokens
+   * @throw Forbidden Exception on invalid password
+   * @error
+   */
+  // TODO: Handle exception when there are internal errors
+  async login(
+    loginInfo: LoginDto,
+  ): Promise<TokenResponse | { error: string; message: string }> {
     const user = await this.prisma.user.findUnique({
       where: { email: loginInfo.email },
     });
@@ -38,6 +46,12 @@ export class AuthService {
       };
     }
   }
+  /**
+   * Sign up a new user using email, password and phone number
+   * Assume a default role "user" to the new registered user
+   * @param signupInfo
+   * @returns
+   */
   async signup(signupInfo: SignupDto) {
     // Receive valid signup info
     // Check if email and username exist. If so, throw error
@@ -71,16 +85,21 @@ export class AuthService {
   }
   async signOut() {}
 
-  // TODO: Add types for schema
-  async signToken(user: User): Promise<TokenResponse> {
-    const iat: number = Date.now() / 1000;
+  /**
+   * Generate a pair of JWT tokens (access and refresh) for the user
+   * The tokens are then processed via other methods in AuthService of AuthModule
+   * @param user Full user payload
+   * @returns Generated tokens for consumption in other methods, such as signToken() or updateRefreshToken()
+   */
+  async generateToken(user: User): Promise<TokenResponse> {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
       username: user.username,
-      iat,
+      iat: Date.now() / 1000,
     };
-    // Import Secret from .env instead of setting it in the module
+    // Import Secret from config module
+    // And sign with JWT service
     const accessToken: string = await this.jwt.signAsync(payload, {
       expiresIn: "1h",
       secret: this.config.get("JWT_ACCESS_SECRET"),
@@ -89,11 +108,40 @@ export class AuthService {
       expiresIn: "7d",
       secret: this.config.get("JWT_REFRESH_SECRET"),
     });
-    await this.redis.set(`user:${user.id}`, refreshToken, 60 * 60 * 24 * 7);
-    return { accessToken: accessToken, refreshToken: refreshToken };
+    const tokens: TokenResponse = {
+      accessToken,
+      refreshToken,
+    };
+    return tokens;
+  }
+  /**
+   * Signs the generated tokens and stores the refresh token in Redis
+   * The refresh token is stored in Redis with a TTL of 7 days
+   * @param user
+   * @returns generated tokens from generateToken()
+   */
+  async signToken(user: User): Promise<TokenResponse> {
+    const tokens = await this.generateToken(user);
+    await this.redis.set(
+      `user:${user.id}`,
+      tokens.refreshToken,
+      60 * 60 * 24 * 7,
+    );
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    };
   }
   // TODO: Update refresh token
-  async updateRefreshToken() {}
+  async updateRefreshToken(user: User): Promise<TokenResponse> {
+    const tokens = await this.generateToken(user);
+    await this.redis.set(
+      `user:${user.id}`,
+      tokens.refreshToken,
+      60 * 60 * 24 * 7,
+    );
+    return tokens;
+  }
   async revokeToken(userId: string) {
     await this.redis.del(`user:${userId}`);
   }

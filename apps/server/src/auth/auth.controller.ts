@@ -1,7 +1,12 @@
-import { Body, Controller, Get, Post } from "@nestjs/common";
+import { Body, Controller, Post } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import { LoginDto, SignupDto } from "./dto";
 
+/**
+ * Responsible for authentication endpoints extending from /auth
+ * @endpoint /login
+ * @endpoint /signup
+ */
 @Controller("auth")
 export class AuthController {
   constructor(private authService: AuthService) {}
