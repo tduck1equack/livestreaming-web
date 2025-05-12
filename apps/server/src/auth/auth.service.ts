@@ -7,7 +7,7 @@ import { SignupDto } from "./dto";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { JwtPayload, TokenResponse } from "@/types";
-import { User } from "@prisma/client";
+import { User, UserRole } from "@prisma/client";
 import { RedisService } from "@/redis/redis.service";
 
 @Injectable()
@@ -33,11 +33,14 @@ export class AuthService {
   ): Promise<TokenResponse | { error: string; message: string }> {
     const user = await this.prisma.user.findUnique({
       where: { email: loginInfo.email },
+      include: {
+        roles: true,
+      },
     });
     if (!user) throw new ForbiddenException("User doesn't exist");
     try {
       if (await argon.verify(user.password, loginInfo.password)) {
-        return this.signToken(user);
+        return this.signToken(user, user.roles);
       } else throw new ForbiddenException("Invalid password");
     } catch (err) {
       return {
@@ -50,7 +53,7 @@ export class AuthService {
    * Sign up a new user using email, password and phone number
    * Assume a default role "user" to the new registered user
    * @param signupInfo
-   * @returns
+   * @returns User's signed tokens, ready for consumption
    */
   async signup(signupInfo: SignupDto) {
     // Receive valid signup info
@@ -73,15 +76,13 @@ export class AuthService {
         password: hashedPassword,
       },
     });
-    await this.prisma.userRole.create({
+    const newRole = await this.prisma.userRole.create({
       data: {
         userId: newUser.id,
-        // roleId 2 is currently user, we want any newly registered user to be assigned
-        // to the "user" role
-        roleId: 2,
+        roleId: 4, // Default role for new users
       },
     });
-    return this.signToken(newUser);
+    return this.signToken(newUser, [newRole]);
   }
   async signOut() {}
 
@@ -91,11 +92,12 @@ export class AuthService {
    * @param user Full user payload
    * @returns Generated tokens for consumption in other methods, such as signToken() or updateRefreshToken()
    */
-  async generateToken(user: User): Promise<TokenResponse> {
+  async generateToken(user: User, roles: UserRole[]): Promise<TokenResponse> {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
       username: user.username,
+      roles: roles.map((role) => role.roleId),
       iat: Date.now() / 1000,
     };
     // Import Secret from config module
@@ -120,8 +122,8 @@ export class AuthService {
    * @param user
    * @returns generated tokens from generateToken()
    */
-  async signToken(user: User): Promise<TokenResponse> {
-    const tokens = await this.generateToken(user);
+  async signToken(user: User, roles: UserRole[]): Promise<TokenResponse> {
+    const tokens = await this.generateToken(user, roles);
     await this.redis.set(
       `user:${user.id}`,
       tokens.refreshToken,
@@ -132,9 +134,17 @@ export class AuthService {
       refreshToken: tokens.refreshToken,
     };
   }
+  /**
+   *
+   * @param user Full user payload with roles
+   * @returns
+   */
   // TODO: Update refresh token
-  async updateRefreshToken(user: User): Promise<TokenResponse> {
-    const tokens = await this.generateToken(user);
+  async updateRefreshToken(
+    user: User,
+    roles: UserRole[],
+  ): Promise<TokenResponse> {
+    const tokens = await this.generateToken(user, roles);
     await this.redis.set(
       `user:${user.id}`,
       tokens.refreshToken,
@@ -142,6 +152,10 @@ export class AuthService {
     );
     return tokens;
   }
+  /**
+   *
+   * @param userId User ID so that Redis can find and delete the stored token
+   */
   async revokeToken(userId: string) {
     await this.redis.del(`user:${userId}`);
   }

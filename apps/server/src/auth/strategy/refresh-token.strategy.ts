@@ -1,15 +1,13 @@
 import { RedisService } from "@/redis/redis.service";
-import { JwtPayload, JwtPayloadWithRefreshToken } from "@/types";
+import { JwtPayload, JwtPayloadWithTokens } from "@/types";
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { Request } from "express";
 import { ExtractJwt, Strategy } from "passport-jwt";
 
-// Define the JWT payload interface
-
 @Injectable()
-// Name the strategy "jwt" to use in AuthGuards
+// Name the strategy "jwt-refresh" to use in AuthGuards
 export class RefreshTokenStrategy extends PassportStrategy(
   Strategy,
   "jwt-refresh",
@@ -32,14 +30,11 @@ export class RefreshTokenStrategy extends PassportStrategy(
     });
   }
 
-  async validate(
-    request: Request,
-    payload: JwtPayload,
-  ): Promise<JwtPayloadWithRefreshToken> {
+  async validate(request: Request, payload: JwtPayload): Promise<any> {
     const refreshToken = request.cookies?.refreshToken;
     if (!refreshToken)
       throw new UnauthorizedException("Refresh token not found");
-    const storedToken = await this.redis.get(`userId:${payload.sub}`);
+    const storedToken = await this.redis.get(`user:${payload.sub}`);
     if (storedToken !== refreshToken)
       throw new UnauthorizedException("Invalid refresh token");
     return {

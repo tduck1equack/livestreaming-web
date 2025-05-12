@@ -11,8 +11,8 @@ datasource db {
 enum Roles {
   ADMIN
   MODERATOR
-  USER
   STREAMER
+  USER
 }
 
 enum StreamStatus {

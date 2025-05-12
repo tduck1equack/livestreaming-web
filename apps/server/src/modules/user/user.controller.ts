@@ -1,20 +1,34 @@
-import { Controller, Get, Req, Res, UseGuards } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Req,
+  Res,
+  UseGuards,
+  UseInterceptors,
+} from "@nestjs/common";
 import { UserService } from "./user.service";
 import { Request, Response } from "express";
-import { JwtGuard } from "@/auth/guard";
+import { JwtGuard } from "@auth/guard";
+import { RolesGuard } from "@auth/guard";
+import { Roles } from "@/decorators";
+import { AUTH_ROLES } from "@/constants";
+// import { CookiesInterceptor } from "@auth/interceptor";
+
+/**
+ * @controller Controller class related to /users API endpoints
+ */
 
 @Controller("users")
 export class UserController {
   constructor(private userService: UserService) {}
+  @Roles([AUTH_ROLES.ADMIN])
+  @UseGuards(JwtGuard, RolesGuard)
+  // @UseInterceptors(CookiesInterceptor)
   @Get("test/userlist")
-  @UseGuards(JwtGuard)
   getUserList(
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    response.cookie("bitch", "this is value");
-    console.log("Cookies:");
-    console.log(request.cookies);
     return this.userService.getUserList();
   }
 }
