@@ -8,7 +8,7 @@ import {
 } from "@nestjs/common";
 import { UserService } from "./user.service";
 import { Request, Response } from "express";
-import { JwtGuard } from "@auth/guard";
+import { JwtAccessGuard } from "@auth/guard";
 import { RolesGuard } from "@auth/guard";
 import { Roles } from "@/decorators";
 import { AUTH_ROLES } from "@/constants";
@@ -22,7 +22,7 @@ import { AUTH_ROLES } from "@/constants";
 export class UserController {
   constructor(private userService: UserService) {}
   @Roles([AUTH_ROLES.ADMIN])
-  @UseGuards(JwtGuard, RolesGuard)
+  @UseGuards(JwtAccessGuard, RolesGuard)
   // @UseInterceptors(CookiesInterceptor)
   @Get("test/userlist")
   getUserList(

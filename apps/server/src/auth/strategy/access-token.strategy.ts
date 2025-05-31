@@ -25,7 +25,11 @@ export class AccessTokenStrategy extends PassportStrategy(
     }
 
     super({
-      jwtFromRequest: ExtractJwt.fromHeader("access-token"),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        (request) => {
+          return request?.cookies?.["access_token"];
+        },
+      ]),
       secretOrKey: jwtAccessSecret,
       passReqToCallback: true,
     });

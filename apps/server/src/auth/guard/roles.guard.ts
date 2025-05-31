@@ -5,10 +5,8 @@ import { Reflector } from "@nestjs/core";
 import { Request } from "express";
 import { Observable } from "rxjs";
 
-// Declare a custome interface to force
-// the request object to have a user property
 /**
- * @guard Roles guard that checks for user roles numbers
+ * @guard Roles guard that checks for user roles numbers (privileges).
  */
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -24,11 +22,9 @@ export class RolesGuard implements CanActivate {
       context.getHandler(),
     );
     if (!requiredRoles) return true;
-    console.log("Required roles: ", requiredRoles);
 
     const requestingUser = context.switchToHttp().getRequest().user;
     if (!requestingUser || !requestingUser.roles) return false;
-    console.log("Requesting user: ", requestingUser);
     // Iterate through the user's roles
     // and check if any of them match the required roles
     for (const role of requestingUser.roles) {
