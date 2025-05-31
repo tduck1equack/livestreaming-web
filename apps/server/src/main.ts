@@ -3,7 +3,14 @@ import { AppModule } from "./app.module";
 import { ConfigService } from "@nestjs/config";
 import { ConsoleLogger, Logger, ValidationPipe } from "@nestjs/common";
 import * as cookieParser from "cookie-parser";
+import helmet from "helmet";
 
+/**
+ * @function bootstrap()
+ * @description Main entry point of the whole application.
+ * Also sets up some global middlewares and modules,
+ * such as CORS, helmet, cookie parser and Validation Pipes
+ */
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: new ConsoleLogger({
@@ -15,7 +22,13 @@ async function bootstrap() {
   const logger = new Logger("Bootstrap");
 
   // Enable CORS so the web can access the API
-  app.enableCors();
+  app.enableCors({
+    origin: "http://localhost:4000",
+    credentials: true,
+  });
+  // Secure headers with helmet
+  app.use(helmet());
+  // Enable cookie parsing for request and response handling
   app.use(cookieParser());
   // Use NestJS's built-in Pipes in place of Zod
   app.useGlobalPipes(
