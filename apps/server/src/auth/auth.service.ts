@@ -4,19 +4,18 @@ import * as argon from "argon2";
 
 import { LoginDto } from "./dto";
 import { SignupDto } from "./dto";
-import { JwtService } from "@nestjs/jwt";
-import { ConfigService } from "@nestjs/config";
-import { JwtPayload, TokenResponse } from "@/types";
-import { User, UserRole } from "@prisma/client";
+import { TokenResponse } from "@/types";
 import { RedisService } from "@/redis/redis.service";
+import { TokensService } from "@/utils/modules/tokens/tokens.service";
+import { WinstonLogger } from "@/utils/modules/logger/winston.service";
 
 @Injectable()
 export class AuthService {
   constructor(
-    private config: ConfigService,
     private prisma: PrismaService,
     private redis: RedisService,
-    private jwt: JwtService,
+    private tokensUtils: TokensService,
+    private logger: WinstonLogger,
   ) {}
   /**
    * Log in and authenticate a user
@@ -40,7 +39,7 @@ export class AuthService {
     if (!user) throw new ForbiddenException("User doesn't exist");
     try {
       if (await argon.verify(user.password, loginInfo.password)) {
-        return this.signToken(user, user.roles);
+        return this.tokensUtils.signTokens(user, user.roles);
       } else throw new ForbiddenException("Invalid password");
     } catch (err) {
       return {
@@ -82,81 +81,11 @@ export class AuthService {
         roleId: 4, // Default role for new users
       },
     });
-    return this.signToken(newUser, [newRole]);
-  }
-  async signOut() {}
-
-  /**
-   * Generate a pair of JWT tokens (access and refresh) for the user
-   * The tokens are then processed via other methods in AuthService of AuthModule
-   * @param user Full user payload
-   * @returns Generated tokens for consumption in other methods, such as signToken() or updateRefreshToken()
-   */
-  async generateToken(user: User, roles: UserRole[]): Promise<TokenResponse> {
-    const payload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-      username: user.username,
-      roles: roles.map((role) => role.roleId),
-      iat: Date.now() / 1000,
-    };
-    // Import Secret from config module
-    // And sign with JWT service
-    const accessToken: string = await this.jwt.signAsync(payload, {
-      expiresIn: "1h",
-      secret: this.config.get("JWT_ACCESS_SECRET"),
-    });
-    const refreshToken: string = await this.jwt.signAsync(payload, {
-      expiresIn: "7d",
-      secret: this.config.get("JWT_REFRESH_SECRET"),
-    });
-    const tokens: TokenResponse = {
-      accessToken,
-      refreshToken,
-    };
-    return tokens;
+    return this.tokensUtils.signTokens(newUser, [newRole]);
   }
   /**
-   * Signs the generated tokens and stores the refresh token in Redis
-   * The refresh token is stored in Redis with a TTL of 7 days
-   * @param user
-   * @returns generated tokens from generateToken()
+   * @method signout()
+   * @description Signs out an user and initializes revoking logic
    */
-  async signToken(user: User, roles: UserRole[]): Promise<TokenResponse> {
-    const tokens = await this.generateToken(user, roles);
-    await this.redis.set(
-      `user:${user.id}`,
-      tokens.refreshToken,
-      60 * 60 * 24 * 7,
-    );
-    return {
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-    };
-  }
-  /**
-   *
-   * @param user Full user payload with roles
-   * @returns
-   */
-  // TODO: Update refresh token
-  async updateRefreshToken(
-    user: User,
-    roles: UserRole[],
-  ): Promise<TokenResponse> {
-    const tokens = await this.generateToken(user, roles);
-    await this.redis.set(
-      `user:${user.id}`,
-      tokens.refreshToken,
-      60 * 60 * 24 * 7,
-    );
-    return tokens;
-  }
-  /**
-   *
-   * @param userId User ID so that Redis can find and delete the stored token
-   */
-  async revokeToken(userId: string) {
-    await this.redis.del(`user:${userId}`);
-  }
+  async signout() {}
 }
