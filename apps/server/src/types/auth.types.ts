@@ -9,6 +9,7 @@ export type JwtPayload = {
   username: string;
   roles: number[];
   iat: number;
+  exp: number;
 };
 /**Return type for refresh token strategy, with a refresh token attached */
 export type JwtPayloadWithTokens = {
