@@ -9,21 +9,34 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "../../ui/form";
-import { loginFormSchema } from "@/schema/form";
-import { Input } from "../../ui/input";
-import { Button } from "../../ui/button";
+} from "@components/ui/form";
+import {
+  loginFormSchema,
+  LoginFormSchemaType,
+} from "@/schema/auth/login.schema";
+import { Input } from "@components/ui/input";
+import { Button } from "@components/ui/button";
+import { axiosInstance } from "@/lib";
 
+/**
+ * @component LoginForm with validation and resolver
+ * @returns Login form component
+ */
 export const LoginForm = () => {
-  const loginForm = useForm<z.infer<typeof loginFormSchema>>({
+  const loginForm = useForm<LoginFormSchemaType>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
       email: "",
       password: "",
     },
   });
-  const onSubmit = (values: z.infer<typeof loginFormSchema>) => {
+  const onSubmit = async (values: LoginFormSchemaType) => {
     console.log(values);
+    const response = await axiosInstance.post("/auth/login", {
+      email: values.email,
+      password: values.password,
+    });
+    console.log(response);
   };
   return (
     <Form {...loginForm}>

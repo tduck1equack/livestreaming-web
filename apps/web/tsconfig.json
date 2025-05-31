@@ -11,10 +11,13 @@
     "paths": {
       "@/*": ["src/*"],
       "@components/*": ["src/components/*"],
+      "@schema/*": ["src/schema/*"],
+      "@hooks/*": ["src/hooks/*"],
       "@styles/*": ["src/styles/*"],
       "@assets/*": ["src/assets/*"],
       "@providers/*": ["src/providers/*"],
-      "@lib/*": ["src/lib/*"]
+      "@lib/*": ["src/lib/*"],
+      "@types/*": ["src/types/*"]
     }
   },
   "include": [
