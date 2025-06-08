@@ -33,18 +33,7 @@ export class AttachTokensInterceptor implements NestInterceptor {
       tap((tokens: TokenResponse) => {
         // Set maxAge to corresponding to the expiry duration
         // from the JwtService
-        response.cookie("access_token", tokens.accessToken, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "strict",
-          maxAge: 60 * 60 * 1000, // 1 hour duration
-        });
-        response.cookie("refresh_token", tokens.refreshToken, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "strict",
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week duration
-        });
+        setTokenCookies(response, tokens);
       }),
     );
   }

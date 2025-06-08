@@ -46,11 +46,9 @@ export class TokensService {
     // Import Secret from config module
     // And sign with JWT service
     const accessToken: string = await this.jwt.signAsync(accessTokenPayload, {
-      expiresIn: "1h",
       secret: this.config.get("JWT_ACCESS_SECRET"),
     });
     const refreshToken: string = await this.jwt.signAsync(refreshTokenPayload, {
-      expiresIn: "7d",
       secret: this.config.get("JWT_REFRESH_SECRET"),
     });
     const tokens: TokenResponse = {
