@@ -36,6 +36,7 @@ export const LoginForm = () => {
       email: values.email,
       password: values.password,
     });
+    console.log("axios link: ", axiosInstance.getUri)
     console.log(response);
   };
   return (

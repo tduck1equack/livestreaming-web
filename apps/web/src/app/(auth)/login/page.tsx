@@ -1,9 +1,9 @@
 "use client";
 
-import { CustomDialog } from "@components/custom/Dialog/custom-dialog";
-import { LoginForm } from "@components/custom/Form";
-import { Button } from "@components/ui/button";
-import { RedirectButton } from "@components/custom/Redirect/redirect-button";
+import { CustomDialog } from "@components/custom/dialog/custom-dialog";
+import { LoginForm } from "@components/custom/form";
+import { Button } from "@components/shadcn/button";
+import { RedirectButton } from "@components/custom/button/redirect-button";
 const LoginPage = () => {
   return (
     <div>

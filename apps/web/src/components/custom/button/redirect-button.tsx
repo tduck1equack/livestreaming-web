@@ -1,4 +1,5 @@
-import { Button } from "@components/ui/button";
+import { Button } from "@components/shadcn/button";
+import Link from "next/link";
 import React from "react";
 
 interface RedirectButtonProps {
@@ -11,8 +12,8 @@ export const RedirectButton: React.FC<RedirectButtonProps> = ({
   route,
 }: RedirectButtonProps) => {
   return (
-    <a href={route}>
+    <Link href={route}>
       <Button>{children}</Button>
-    </a>
+    </Link>
   );
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { RedirectButton } from "@components/custom/Redirect/redirect-button";
+import { RedirectButton } from "@/components/custom/button/redirect-button";
 import { axiosInstance } from "@/lib";
 import { User } from "@prisma/client";
 import { useCallback, useEffect, useState } from "react";
@@ -17,7 +17,7 @@ const UsersPage = () => {
       setUsers(response.data);
     };
     fetchUser();
-    return () => {};
+    return () => { };
   }, []);
   return (
     <>
