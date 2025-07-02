@@ -16,7 +16,7 @@ export class AuthService {
     private redis: RedisService,
     private tokensUtils: TokensService,
     private logger: WinstonLogger,
-  ) {}
+  ) { }
   /**
    * Log in and authenticate a user
    * This method checks if user exists in the database with correct email and password
@@ -87,5 +87,5 @@ export class AuthService {
    * @method signout()
    * @description Signs out an user and initializes revoking logic
    */
-  async signout() {}
+  async signout() { }
 }

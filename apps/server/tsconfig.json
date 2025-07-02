@@ -18,15 +18,33 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@/*": ["src/*"],
-      "@auth/*": ["src/auth/*"],
-      "@prisma/*": ["src/prisma/*"],
-      "@decorators/*": ["src/decorators/*"],
-      "@constants/*": ["src/constants/*"],
-      "@redis/*": ["src/redis/*"],
-      "@modules/*": ["src/modules/*"],
-      "@config/*": ["src/config/*"],
-      "@types/*": ["src/types/*"]
+      "@/*": [
+        "src/*"
+      ],
+      "@auth/*": [
+        "src/auth/*"
+      ],
+      "@prisma/*": [
+        "src/prisma/*"
+      ],
+      "@decorators/*": [
+        "src/decorators/*"
+      ],
+      "@constants/*": [
+        "src/constants/*"
+      ],
+      "@redis/*": [
+        "src/redis/*"
+      ],
+      "@modules/*": [
+        "src/modules/*"
+      ],
+      "@config/*": [
+        "src/config/*"
+      ],
+      "@types/*": [
+        "./src/types/index.ts"
+      ]
     }
   }
 }

@@ -1,0 +1,402 @@
+generator client {
+    provider = "prisma-client-js"
+    output   = "./generated/client"
+}
+
+datasource db {
+    provider  = "postgresql"
+    url       = env("DATABASE_URL")
+    directUrl = env("DIRECT_URL")
+}
+
+// Enums for better type safety
+enum Roles {
+    ADMIN
+    MODERATOR
+    STREAMER
+    USER
+}
+
+enum StreamStatus {
+    PENDING
+    LIVE
+    ENDED
+    FAILED
+    SCHEDULED
+}
+
+enum ContentModerationStatus {
+    PENDING
+    APPROVED
+    REJECTED
+    FLAGGED
+}
+
+enum SubscriptionTier {
+    FREE
+    BASIC
+    PREMIUM
+    PRO
+}
+
+// 1. Users and Roles (Many-to-Many)
+model User {
+    id                     String                 @id @default(uuid())
+    email                  String                 @unique
+    password               String
+    username               String                 @unique
+    fullName               String?
+    avatarUrl              String?
+    bio                    String?
+    birthday               DateTime               @db.Date
+    phoneNumber            String                 @unique
+    roles                  UserRole[]
+    streams                Stream[]
+    videos                 Video[]
+    views                  View[]
+    watched                Watched[]
+    videoLikes             VideoLike[]
+    streamLikes            StreamLike[]
+    chatMessages           ChatMessage[]
+    playlists              Playlist[]
+    subscriptions          Subscription[]
+    playlistCollaborations PlaylistCollaborator[]
+    isVerified             Boolean                @default(false)
+    isBanned               Boolean                @default(false)
+    banReason              String?
+    lastLoginAt            DateTime?
+    createdAt              DateTime               @default(now())
+    updatedAt              DateTime               @updatedAt
+    deletedAt              DateTime?
+
+    @@index([email])
+    @@index([username])
+}
+
+model Role {
+    id        Int        @id @default(autoincrement())
+    name      Roles      @unique
+    users     UserRole[]
+    createdAt DateTime   @default(now())
+    updatedAt DateTime   @updatedAt
+}
+
+model UserRole {
+    userId     String   @map("user_id")
+    roleId     Int      @map("role_id")
+    user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+    assignedAt DateTime @default(now())
+
+    @@id([userId, roleId])
+}
+
+// 2. Streams and Videos
+model Stream {
+    id                 String                  @id @default(uuid())
+    title              String
+    description        String?
+    thumbnailUrl       String?
+    rtmpUrl            String                  @map("rtmp_url")
+    streamKey          String                  @unique @map("stream_key")
+    status             StreamStatus            @default(PENDING)
+    moderationStatus   ContentModerationStatus @default(PENDING)
+    isLive             Boolean                 @default(false) @map("is_live")
+    startTime          DateTime?               @map("start_time")
+    endTime            DateTime?               @map("end_time")
+    scheduledStartTime DateTime?               @map("scheduled_start_time")
+    peakViewers        Int                     @default(0) @map("peak_viewers")
+    totalViews         Int                     @default(0) @map("total_views")
+    averageWatchTime   Int?                    @map("average_watch_time") // in seconds
+    userId             String                  @map("user_id")
+    user               User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    video              Video?
+    chatMessages       ChatMessage[]
+    likes              StreamLike[]
+    watched            Watched[]
+    playlistItems      PlaylistItem[]
+    analytics          StreamAnalytics?
+    categories         StreamCategory[]
+    createdAt          DateTime                @default(now()) @map("created_at")
+    updatedAt          DateTime                @updatedAt
+    deletedAt          DateTime?
+
+    @@index([userId])
+    @@index([status])
+    @@index([isLive])
+    @@index([scheduledStartTime])
+}
+
+model StreamAnalytics {
+    id               String   @id @default(uuid())
+    streamId         String   @unique @map("stream_id")
+    stream           Stream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
+    viewerCount      Int      @default(0) @map("viewer_count")
+    chatMessageCount Int      @default(0) @map("chat_message_count")
+    likeCount        Int      @default(0) @map("like_count")
+    shareCount       Int      @default(0) @map("share_count")
+    reportCount      Int      @default(0) @map("report_count")
+    createdAt        DateTime @default(now()) @map("created_at")
+    updatedAt        DateTime @updatedAt
+}
+
+model Video {
+    id               String                  @id @default(uuid())
+    title            String
+    description      String?
+    duration         Int? // in seconds
+    url              String
+    thumbnailUrl     String?
+    moderationStatus ContentModerationStatus @default(PENDING)
+    views            View[]
+    likes            VideoLike[]
+    userId           String                  @map("user_id")
+    user             User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    streamId         String?                 @unique @map("stream_id")
+    stream           Stream?                 @relation(fields: [streamId], references: [id], onDelete: SetNull)
+    categories       VideoCategory[]
+    watched          Watched[]
+    playlistItems    PlaylistItem[]
+    analytics        VideoAnalytics?
+    createdAt        DateTime                @default(now()) @map("created_at")
+    updatedAt        DateTime                @updatedAt
+    deletedAt        DateTime?
+
+    @@index([userId])
+    @@index([moderationStatus])
+}
+
+model VideoAnalytics {
+    id               String   @id @default(uuid())
+    videoId          String   @unique @map("video_id")
+    video            Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+    viewCount        Int      @default(0) @map("view_count")
+    likeCount        Int      @default(0) @map("like_count")
+    shareCount       Int      @default(0) @map("share_count")
+    reportCount      Int      @default(0) @map("report_count")
+    averageWatchTime Int?     @map("average_watch_time") // in seconds
+    createdAt        DateTime @default(now()) @map("created_at")
+    updatedAt        DateTime @updatedAt
+}
+
+// 3. Categories (Many-to-Many)
+model Category {
+    id          Int              @id @default(autoincrement())
+    name        String           @unique
+    description String?
+    videos      VideoCategory[]
+    streams     StreamCategory[]
+    createdAt   DateTime         @default(now())
+    updatedAt   DateTime         @updatedAt
+}
+
+model VideoCategory {
+    videoId    String   @map("video_id")
+    categoryId Int      @map("category_id")
+    video      Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+    category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+    addedAt    DateTime @default(now())
+
+    @@id([videoId, categoryId])
+}
+
+// New model for Stream Categories
+model StreamCategory {
+    streamId   String   @map("stream_id")
+    categoryId Int      @map("category_id")
+    stream     Stream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
+    category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+    addedAt    DateTime @default(now())
+
+    @@id([streamId, categoryId])
+    @@map("StreamCategories")
+}
+
+// 4. User Interactions
+model ChatMessage {
+    id          String    @id @default(uuid())
+    message     String
+    streamId    String    @map("stream_id")
+    stream      Stream    @relation(fields: [streamId], references: [id], onDelete: Cascade)
+    userId      String    @map("user_id")
+    user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    isModerated Boolean   @default(false)
+    moderatedAt DateTime? @map("moderated_at")
+    sentAt      DateTime  @default(now()) @map("sent_at")
+    deletedAt   DateTime?
+
+    @@index([streamId])
+    @@index([userId])
+    @@index([sentAt])
+}
+
+model Watched {
+    id        String   @id @default(uuid())
+    userId    String   @map("user_id")
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    videoId   String?  @map("video_id") // Nullable for live streams
+    video     Video?   @relation(fields: [videoId], references: [id], onDelete: Cascade)
+    streamId  String?  @map("stream_id") // Nullable for VODs
+    stream    Stream?  @relation(fields: [streamId], references: [id], onDelete: Cascade)
+    watchedAt DateTime @default(now()) @map("watched_at")
+    progress  Int? // Track progress in seconds (e.g., for resuming)
+    duration  Int? // Total watch duration in seconds
+
+    @@index([userId, videoId]) // Faster queries for user-specific activity
+    @@index([userId, streamId])
+    @@index([watchedAt])
+}
+
+model View {
+    id       String   @id @default(uuid())
+    userId   String?  @map("user_id")
+    user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+    videoId  String   @map("video_id")
+    video    Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+    viewedAt DateTime @default(now()) @map("viewed_at")
+    duration Int? // View duration in seconds
+    device   String? // Device type (mobile, desktop, etc.)
+    country  String? // Viewer's country
+
+    @@index([videoId])
+    @@index([userId])
+    @@index([viewedAt])
+}
+
+model VideoLike {
+    userId  String   @map("user_id")
+    user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    videoId String   @map("video_id")
+    video   Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+    likedAt DateTime @default(now()) @map("liked_at")
+
+    @@id([userId, videoId]) // Composite key
+    @@index([videoId])
+}
+
+model StreamLike {
+    userId   String   @map("user_id")
+    user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    streamId String   @map("stream_id")
+    stream   Stream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
+    likedAt  DateTime @default(now()) @map("liked_at")
+
+    @@id([userId, streamId]) // Composite key
+    @@index([streamId])
+}
+
+// 5. Playlists
+model Playlist {
+    id            String                 @id @default(uuid())
+    title         String
+    description   String?
+    isPublic      Boolean                @default(true) @map("is_public")
+    isFeatured    Boolean                @default(false) @map("is_featured")
+    thumbnailUrl  String?                @map("thumbnail_url")
+    userId        String                 @map("user_id")
+    user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    items         PlaylistItem[] // Items in this playlist
+    collaborators PlaylistCollaborator[] // Users who can edit this playlist
+    views         Int                    @default(0)
+    likes         Int                    @default(0)
+    shares        Int                    @default(0)
+    createdAt     DateTime               @default(now()) @map("created_at")
+    updatedAt     DateTime               @updatedAt
+    deletedAt     DateTime?
+
+    @@index([userId])
+    @@index([isPublic])
+    @@index([isFeatured])
+}
+
+model PlaylistCollaborator {
+    id         String   @id @default(uuid())
+    playlistId String   @map("playlist_id")
+    playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+    userId     String   @map("user_id")
+    user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    role       String   @default("EDITOR") // EDITOR, VIEWER
+    addedAt    DateTime @default(now()) @map("added_at")
+    addedBy    String   @map("added_by") // User ID who added this collaborator
+
+    @@unique([playlistId, userId])
+    @@index([playlistId])
+    @@index([userId])
+}
+
+model PlaylistItem {
+    id         String   @id @default(uuid())
+    playlistId String   @map("playlist_id")
+    playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+    videoId    String?  @map("video_id")
+    video      Video?   @relation(fields: [videoId], references: [id], onDelete: SetNull)
+    streamId   String?  @map("stream_id")
+    stream     Stream?  @relation(fields: [streamId], references: [id], onDelete: SetNull)
+    addedAt    DateTime @default(now()) @map("added_at")
+    position   Int // For manual ordering
+    addedBy    String   @map("added_by") // User ID who added this item
+
+    @@index([playlistId, position])
+    @@index([videoId])
+    @@index([streamId])
+}
+
+// 6. Subscriptions and Monetization
+model Subscription {
+    id              String           @id @default(uuid())
+    userId          String           @map("user_id")
+    user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+    tier            SubscriptionTier @default(FREE)
+    startDate       DateTime         @default(now()) @map("start_date")
+    endDate         DateTime?        @map("end_date")
+    isActive        Boolean          @default(true) @map("is_active")
+    autoRenew       Boolean          @default(true) @map("auto_renew")
+    paymentMethodId String?          @map("payment_method_id")
+    createdAt       DateTime         @default(now()) @map("created_at")
+    updatedAt       DateTime         @updatedAt
+    cancelledAt     DateTime?
+
+    @@index([userId])
+    @@index([tier])
+    @@index([isActive])
+}
+
+model Payment {
+    id            String   @id @default(uuid())
+    userId        String   @map("user_id")
+    amount        Float
+    currency      String   @default("USD")
+    status        String // PENDING, COMPLETED, FAILED, REFUNDED
+    paymentMethod String?  @map("payment_method")
+    transactionId String?  @unique @map("transaction_id")
+    description   String?
+    createdAt     DateTime @default(now()) @map("created_at")
+    updatedAt     DateTime @updatedAt
+
+    @@index([userId])
+    @@index([status])
+    @@index([createdAt])
+}
+
+// 7. Reports and Moderation
+model Report {
+    id             String    @id @default(uuid())
+    reporterId     String    @map("reporter_id")
+    reportedUserId String?   @map("reported_user_id")
+    videoId        String?   @map("video_id")
+    streamId       String?   @map("stream_id")
+    chatMessageId  String?   @map("chat_message_id")
+    reason         String
+    details        String?
+    status         String    @default("PENDING") // PENDING, REVIEWED, RESOLVED, DISMISSED
+    reviewedBy     String?   @map("reviewed_by")
+    reviewedAt     DateTime? @map("reviewed_at")
+    createdAt      DateTime  @default(now()) @map("created_at")
+    updatedAt      DateTime  @updatedAt
+
+    @@index([reporterId])
+    @@index([reportedUserId])
+    @@index([videoId])
+    @@index([streamId])
+    @@index([status])
+}
